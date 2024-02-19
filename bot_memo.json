@@ -1,11 +1,11 @@
 {
     "is_meeting_done": true,
     "current_meet_link": "meet:www.google.com",
-    "message_id": 527,
+    "message_id": 578,
     "chat_id": -1002066701198,
     "voting_data": {
-        "0": 2,
-        "1": 0,
+        "0": 0,
+        "1": 1,
         "2": 0,
         "3": 0,
         "4": 0,
@@ -17,10 +17,7 @@
     },
     "user_data": {
         "1690752173": [
-            0
-        ],
-        "5126300875": [
-            0
+            1
         ]
     }
 }

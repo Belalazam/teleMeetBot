@@ -44,20 +44,44 @@ weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", 
 poll_options = ["7-8","8-9","9-10","10-11","11-12","12-13","20-21","21-22","22-23","23-24"]
 phasedays = ["Sunday", "Monday", 'Tuesday', 'Wednesday']
 
-utc_now = datetime.datetime.utcnow()
-india_timezone = pytz.timezone('Asia/Kolkata')
-india_now = utc_now.astimezone(india_timezone)
-weekday = weekdays[india_now.weekday()]
+utc_now = None
+india_timezone = None
 
 
-if weekday in phasedays:
-    weekday = "Wednesday"
-else:
-    weekday = "Saturday"
+def get_hour():
+    utc_offset = datetime.timedelta(hours=5, minutes=30)
+    utc_now = datetime.datetime.utcnow()
+    local_now = utc_now + utc_offset
+    return local_now.hour
+
+def get_min():
+    utc_offset = datetime.timedelta(hours=5, minutes=30)
+    utc_now = datetime.datetime.utcnow()
+    local_now = utc_now + utc_offset
+    return local_now.minute
+
+def get_weekday():
+    utc_offset = datetime.timedelta(hours=5, minutes=30)
+    utc_now = datetime.datetime.utcnow()
+    local_now = utc_now + utc_offset
+    return local_now.weekday()
+
+def getweekday():
+    weekday = weekdays[get_weekday()]
+    print(weekday)
+    if weekday in phasedays:
+        weekday = "Wednesday"
+    else:
+        weekday = "Saturday"
+    return weekday
+
+
+
+
 
 polls = {}
 poll_question = (
-    f"What times are you available for the {weekday} meeting?\n"
+    f"What times are you available for the {getweekday()} meeting?\n"
     "Please select all that apply.\n"
     "***You can change your selections at any time (T&C apply).***\n"
     "***Please do not change your selections within 30 minutes of the scheduled time.***"
@@ -126,7 +150,7 @@ async def send_poll(context: ContextTypes.DEFAULT_TYPE):
     print('Sending Poll')
     hour = datetime.datetime.now().hour
     message_id = get_data("message_id")
-    if(((weekday == "Wednesday" or weekday == "Saturday") and hour >= 23) or message_id == -1):
+    if(((getweekday() == "Wednesday" or getweekday() == "Saturday") and hour >= 23) or message_id == -1):
         chat_id = get_data("chat_id")
         new_poll = await context.bot.send_poll(
             chat_id = chat_id,
@@ -167,6 +191,7 @@ async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #Cron Jobs
 ############################################################################################################
 async def every_day_caller(context: ContextTypes.DEFAULT_TYPE):
+    print("every day caller executed")
     chat_id = get_data("chat_id")
     user_data = get_data("user_data")
     await send_poll(context)
@@ -177,21 +202,19 @@ async def every_hour_caller(context: ContextTypes.DEFAULT_TYPE):
     user_data = get_data("user_data")
     chat_id = get_data("chat_id")
     is_meeting_done = get_data("is_meeting_done")
-    if user_data.length == 4 and (weekday == 'Saturday' or weekday == 'Wednesday') and is_meeting_done == False :
+    if user_data.length == 4 and (getweekday() == 'Saturday' or getweekday() == 'Wednesday') and is_meeting_done == False :
         voting_data = get_data("voting_data")
         for i in range(0, 10):
             z = voting_data.get(str(i))
             voted_time = indexTimeMapper[i]
-            current_time = india_now.now().hour
-            print(current_time, voted_time)
+            current_time = get_hour()
             if z == 4 and current_time+1 == voted_time:
                 meet_link = get_data("current_meet_link")
                 await context.bot.send_message(chat_id=chat_id, text=meet_link + f"\n please join at {voted_time}:00")
                 update_data("is_meeting_done", True)
                 return
 
-async def my_filter():
-    return 
+
 
 #Main
 ############################################################################################################
@@ -205,13 +228,13 @@ def main() -> None:
     app.add_error_handler(error)
     app.add_handler(PollAnswerHandler(calc_poll_result))
     print('Polling...')
-    print("started at -> ", india_now.now().hour, " ", india_now.now().minute)
+    getweekday()
+    print("started at -> ", get_hour(), ":", get_min())
     
     
     #every one hour caller
     ################################################################################
-    currentTime = india_now.now()
-    minutes = currentTime.minute    
+    minutes = get_min()
     if minutes > 0 and minutes < 30:
         minutes = 30 - minutes
     else:
@@ -222,7 +245,6 @@ def main() -> None:
     #every day caller
     ###############################################################################
     time_to_run = datetime.time(23, 00, tzinfo=pytz.timezone('Asia/Kolkata'))
-      
     app.job_queue.run_daily(every_day_caller, time = time_to_run, days=(0, 1, 2, 3, 4, 5, 6))
     ###############################################################################
     app.run_polling(allowed_updates=Update.ALL_TYPES)
